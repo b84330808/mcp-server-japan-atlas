@@ -18,17 +18,15 @@ export interface GsiElevationResult {
   hsrc: string;
 }
 
-export interface HeartRailsApiResponse {
-  response: {
-    location?: Array<{
-      prefecture: string;
-      city: string;
-      town: string;
-      x: string;
-      y: string;
-      postal: string;
-    }>;
-    error?: string;
+export interface GsiAddressFeature {
+  type: "Feature";
+  geometry: {
+    type: "Point";
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+  properties: {
+    title: string;
+    addressCode: string;
   };
 }
 

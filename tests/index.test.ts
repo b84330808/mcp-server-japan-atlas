@@ -74,33 +74,26 @@ describe("normalizeJpAddress", () => {
     jest.clearAllMocks();
   });
 
-  it("returns enriched result when HeartRails responds successfully", async () => {
+  it("returns enriched result when GSI address search responds successfully", async () => {
     mockedAxios.get = jest.fn().mockResolvedValue({
-      data: {
-        response: {
-          location: [
-            {
-              prefecture: "東京都",
-              city: "渋谷区",
-              town: "道玄坂",
-              x: "139.6981",
-              y: "35.6591",
-              postal: "150-0043",
-            },
-          ],
+      data: [
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [139.700531, 35.657677] },
+          properties: { title: "東京都渋谷区道玄坂", addressCode: "" },
         },
-      },
+      ],
     });
 
     const result = await normalizeJpAddress("東京都渋谷区道玄坂1-2-3");
     expect(result.prefecture).toBe("東京都");
     expect(result.city).toBe("渋谷区");
-    expect(result.latitude).toBeCloseTo(35.6591, 3);
-    expect(result.longitude).toBeCloseTo(139.6981, 3);
-    expect(result.source).toBe("heartrails-express");
+    expect(result.latitude).toBeCloseTo(35.657677, 3);
+    expect(result.longitude).toBeCloseTo(139.700531, 3);
+    expect(result.source).toBe("gsi-address-search");
   });
 
-  it("falls back to local parse when HeartRails times out", async () => {
+  it("falls back to local parse when GSI API times out", async () => {
     const timeoutError = Object.assign(new Error("timeout"), { code: "ECONNABORTED", isAxiosError: true });
     mockedAxios.get = jest.fn().mockRejectedValue(timeoutError);
     (mockedAxios.isAxiosError as unknown as jest.Mock).mockReturnValue(true);
@@ -130,9 +123,7 @@ describe("normalizeJpAddress", () => {
   });
 
   it("throws ADDRESS_NOT_FOUND when no prefecture matches and API returns no location", async () => {
-    mockedAxios.get = jest.fn().mockResolvedValue({
-      data: { response: { location: [] } },
-    });
+    mockedAxios.get = jest.fn().mockResolvedValue({ data: [] });
     (mockedAxios.isAxiosError as unknown as jest.Mock).mockReturnValue(false);
 
     await expect(normalizeJpAddress("あいうえおかきくけこさしすせそ")).rejects.toMatchObject({
@@ -142,7 +133,7 @@ describe("normalizeJpAddress", () => {
 
   it("preserves original address in result", async () => {
     mockedAxios.get = jest.fn().mockResolvedValue({
-      data: { response: { location: [{ prefecture: "北海道", city: "札幌市", town: "", x: "141.3", y: "43.06", postal: "" }] } },
+      data: [{ type: "Feature", geometry: { type: "Point", coordinates: [141.3, 43.06] }, properties: { title: "北海道札幌市", addressCode: "" } }],
     });
 
     const input = "北海道札幌市中央区大通西1丁目";

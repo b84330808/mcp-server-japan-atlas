@@ -1,21 +1,18 @@
 import axios, { AxiosError } from "axios";
 import type {
   NormalizedAddress,
-  HeartRailsApiResponse,
+  GsiAddressFeature,
   McpErrorPayload,
 } from "./types.js";
 
-const HEARTRAILS_API_BASE = "https://express.heartrails.com/api/json";
+const GSI_ADDRESS_SEARCH_API = "https://msearch.gsi.go.jp/address-search/AddressSearch";
 const REQUEST_TIMEOUT_MS = 10_000;
 
 // Japanese prefecture names used for local regex fallback
 const PREFECTURE_PATTERNS =
   /^(北海道|青森県|岩手県|宮城県|秋田県|山形県|福島県|茨城県|栃木県|群馬県|埼玉県|千葉県|東京都|神奈川県|新潟県|富山県|石川県|福井県|山梨県|長野県|岐阜県|静岡県|愛知県|三重県|滋賀県|京都府|大阪府|兵庫県|奈良県|和歌山県|鳥取県|島根県|岡山県|広島県|山口県|徳島県|香川県|愛媛県|高知県|福岡県|佐賀県|長崎県|熊本県|大分県|宮崎県|鹿児島県|沖縄県)/;
 
-// Pattern to split off city-level and below after prefecture
 const CITY_PATTERN = /^(.{2,5}?[市区町村郡])/;
-
-// Detects strings that are entirely blank or non-address content
 const EMPTY_OR_WHITESPACE = /^\s*$/;
 
 export class AddressNormalizationError extends Error {
@@ -61,10 +58,6 @@ export function parseAddressLocally(raw: string): Partial<NormalizedAddress> {
   return { original: raw, prefecture, city, ward, block, remainder, latitude: null, longitude: null };
 }
 
-/**
- * Validates that the input looks like a plausible Japanese address before
- * making any network calls.
- */
 function validateInput(address: string): void {
   if (EMPTY_OR_WHITESPACE.test(address)) {
     throw new AddressNormalizationError(
@@ -78,8 +71,7 @@ function validateInput(address: string): void {
       "Address too long"
     );
   }
-  // Require at least one CJK character (Japanese) in the input
-  if (!/[　-鿿豈-﫿]/.test(address)) {
+  if (!/[　-鿿豈-﫿]/.test(address)) {
     throw new AddressNormalizationError(
       {
         code: "INVALID_INPUT",
@@ -92,8 +84,9 @@ function validateInput(address: string): void {
 }
 
 /**
- * Normalizes a Japanese address string by querying the HeartRails Express API
- * and enriching the result with local regex parsing.
+ * Normalizes a Japanese address string by querying the GSI Address Search API
+ * (msearch.gsi.go.jp) for geocoordinates, enriched with local regex parsing.
+ * No API key required.
  */
 export async function normalizeJpAddress(
   rawAddress: string
@@ -102,49 +95,38 @@ export async function normalizeJpAddress(
 
   const local = parseAddressLocally(rawAddress);
 
-  let apiPrefecture = local.prefecture ?? "";
-  let apiCity = local.city ?? "";
-  let latitude: number | null = local.latitude ?? null;
-  let longitude: number | null = local.longitude ?? null;
+  let latitude: number | null = null;
+  let longitude: number | null = null;
   let source = "local-regex";
 
   try {
-    const response = await axios.get<HeartRailsApiResponse>(HEARTRAILS_API_BASE, {
-      params: { method: "searchByPostal", address: rawAddress },
+    const { data } = await axios.get<GsiAddressFeature[]>(GSI_ADDRESS_SEARCH_API, {
+      params: { q: rawAddress },
       timeout: REQUEST_TIMEOUT_MS,
       headers: { "Accept": "application/json" },
     });
 
-    const locations = response.data?.response?.location;
-    if (locations && locations.length > 0) {
-      const loc = locations[0];
-      apiPrefecture = loc.prefecture || apiPrefecture;
-      apiCity = loc.city || apiCity;
-      const parsedLat = parseFloat(loc.y);
-      const parsedLon = parseFloat(loc.x);
-      if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
-        latitude = parsedLat;
-        longitude = parsedLon;
-        source = "heartrails-express";
+    if (Array.isArray(data) && data.length > 0) {
+      const feature = data[0];
+      const [lon, lat] = feature.geometry.coordinates;
+      if (isFinite(lat) && isFinite(lon)) {
+        latitude = lat;
+        longitude = lon;
+        source = "gsi-address-search";
       }
     }
   } catch (err) {
-    // HeartRails is best-effort enrichment; fall through to local-only result
     if (axios.isAxiosError(err)) {
       const axiosErr = err as AxiosError;
-      if (axiosErr.code === "ECONNABORTED" || axiosErr.code === "ERR_NETWORK") {
-        // Surface as a softer warning — we still return local parse
-        source = "local-regex (HeartRails timeout)";
-      } else {
-        source = `local-regex (HeartRails error: ${axiosErr.message})`;
-      }
+      source = axiosErr.code === "ECONNABORTED"
+        ? "local-regex (GSI timeout)"
+        : `local-regex (GSI error: ${axiosErr.message})`;
     } else {
-      source = "local-regex (HeartRails unavailable)";
+      source = "local-regex (GSI unavailable)";
     }
   }
 
-  // If the API returned no result and we have no prefecture, the address is unknown
-  if (!apiPrefecture && !local.prefecture) {
+  if (!local.prefecture) {
     throw new AddressNormalizationError(
       {
         code: "ADDRESS_NOT_FOUND",
@@ -156,8 +138,8 @@ export async function normalizeJpAddress(
 
   return {
     original: rawAddress,
-    prefecture: apiPrefecture || local.prefecture || "",
-    city: apiCity || local.city || "",
+    prefecture: local.prefecture,
+    city: local.city || "",
     ward: local.ward || "",
     block: local.block || "",
     remainder: local.remainder || "",
