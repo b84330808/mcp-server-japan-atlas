@@ -185,7 +185,13 @@ Replace `/absolute/path/to/mcp-server-japan-atlas` with the actual path where yo
 }
 ```
 
-Restart Claude Desktop after saving. You should see a hammer icon (🔨) indicating tools are available.
+Restart Claude Desktop after saving. To verify the server loaded:
+
+1. Click the **`+`** button in the bottom-left of the chat input area
+2. Select **Connectors**
+3. You should see **`japan-atlas`** listed with a blue toggle (enabled)
+
+If the toggle is grey, click it to enable. No hammer icon — the server lives in the Connectors menu.
 
 ---
 
