@@ -35,7 +35,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
       description:
         "Normalizes a raw or messy Japanese address string into structured components " +
         "(prefecture, city, ward, block) and attempts to resolve approximate latitude/longitude " +
-        "via the HeartRails Express public API. No API key required. " +
+        "via the Japan GSI Address Search API (msearch.gsi.go.jp). No API key required. " +
         "Use this tool whenever a user provides a Japanese address that needs to be parsed, " +
         "geocoded, or validated.",
       inputSchema: {

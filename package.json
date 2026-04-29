@@ -29,7 +29,7 @@
   "author": "b84330808",
   "repository": {
     "type": "git",
-    "url": "https://github.com/b84330808/mcp-server-japan-atlas.git"
+    "url": "git+https://github.com/b84330808/mcp-server-japan-atlas.git"
   },
   "homepage": "https://github.com/b84330808/mcp-server-japan-atlas#readme",
   "bugs": {
@@ -62,7 +62,12 @@
       "**/tests/**/*.test.ts"
     ],
     "transform": {
-      "^.+\\.tsx?$": ["ts-jest", { "tsconfig": "tsconfig.test.json" }]
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": "tsconfig.test.json"
+        }
+      ]
     },
     "collectCoverageFrom": [
       "src/**/*.ts"
