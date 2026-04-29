@@ -45,14 +45,14 @@ When a user tells Claude *"find me restaurants near 渋谷区道玄坂1-2-3"*, C
 │  ┌──────────────────────┐            ┌──────────────────────┐ │
 │  │  1. Input validation │            │  1. Coord validation │ │
 │  │  2. Regex parse      │            │  2. Japan bounds check│ │
-│  │  3. HeartRails API → │            │  3. GSI DEM API call │ │
-│  │     lat/lon/postal   │            │  4. Elevation + hsrc │ │
+│  │  3. GSI Address API→ │            │  3. GSI DEM API call │ │
+│  │     lat/lon          │            │  4. Elevation + hsrc │ │
 │  └──────────────────────┘            └──────────────────────┘ │
 └──────────┬──────────────────────────────────┬───────────────┘
            │                                  │
            ▼                                  ▼
-  HeartRails Express API            Japan GSI Elevation API
-  (express.heartrails.com)          (cyberjapandata2.gsi.go.jp)
+  GSI Address Search API            Japan GSI Elevation API
+  (msearch.gsi.go.jp)               (cyberjapandata2.gsi.go.jp)
   No key required                   No key required
   Japan Post address DB             Official DEM, 5m/10m resolution
 ```
@@ -85,7 +85,7 @@ Parses a raw Japanese address string into structured components and attempts geo
     "remainder": "道玄坂",
     "latitude": 35.6591,
     "longitude": 139.6981,
-    "source": "heartrails-express"
+    "source": "gsi-address-search"
   },
   "note": "Geocoordinates resolved. Use get_gsi_geo_context to enrich with elevation."
 }
@@ -245,7 +245,7 @@ npm run build
 mcp-server-japan-atlas/
 ├── src/
 │   ├── index.ts        # MCP server, tool registry & dispatch
-│   ├── address.ts      # Address normalization logic + HeartRails API
+│   ├── address.ts      # Address normalization logic + GSI Address Search API
 │   ├── elevation.ts    # GSI elevation API client
 │   └── types.ts        # Shared TypeScript interfaces
 ├── tests/
@@ -289,10 +289,10 @@ Error codes:
 
 | Source | URL | License | Used for |
 |---|---|---|---|
-| HeartRails Express | https://express.heartrails.com | Public, no key | Address → lat/lon, postal lookup |
+| GSI Address Search | https://msearch.gsi.go.jp | Public domain | Address → lat/lon (GeoJSON) |
 | Japan GSI DEM | https://cyberjapandata2.gsi.go.jp | Public domain | Elevation data |
 
-Both APIs are free, require no authentication, and are operated by established Japanese organizations (HeartRails Co., Ltd. and the Ministry of Land, Infrastructure, Transport and Tourism respectively).
+Both APIs are free, require no authentication, and are operated by the Ministry of Land, Infrastructure, Transport and Tourism (国土地理院).
 
 ---
 
