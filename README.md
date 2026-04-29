@@ -133,29 +133,9 @@ Returns the official elevation at any point in Japan using the GSI (国土地理
 - Node.js 18 or higher
 - Claude Desktop (or any MCP-compatible client)
 
-### Install from source
+### Install via npx (recommended)
 
-```bash
-git clone https://github.com/your-username/mcp-server-japan-atlas
-cd mcp-server-japan-atlas
-npm install
-npm run build
-```
-
-### Verify it works
-
-```bash
-# Should print: mcp-server-japan-atlas v1.0.0 running on stdio
-node dist/index.js
-```
-
-Press `Ctrl+C` to exit.
-
----
-
-## Claude Desktop Configuration
-
-Add the following to your `claude_desktop_config.json`:
+No cloning or building required. Just add the following to your `claude_desktop_config.json`:
 
 **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`  
 **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
@@ -164,22 +144,32 @@ Add the following to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "japan-atlas": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-server-japan-atlas/dist/index.js"]
+      "command": "npx",
+      "args": ["-y", "mcp-server-japan-atlas"]
     }
   }
 }
 ```
 
-Replace `/absolute/path/to/mcp-server-japan-atlas` with the actual path where you cloned the repo.
+`npx` downloads and runs the latest version automatically — no manual steps needed.
 
-**Windows example:**
+### Install from source (for development)
+
+```bash
+git clone https://github.com/b84330808/mcp-server-japan-atlas
+cd mcp-server-japan-atlas
+npm install
+npm run build
+```
+
+Then point your config to the built file:
+
 ```json
 {
   "mcpServers": {
     "japan-atlas": {
       "command": "node",
-      "args": ["C:\\Users\\YourName\\projects\\mcp-server-japan-atlas\\dist\\index.js"]
+      "args": ["/absolute/path/to/mcp-server-japan-atlas/dist/index.js"]
     }
   }
 }
